@@ -1,4 +1,4 @@
-# **Book based ChatBot using OpenAI,LangChain (Streamlit)**
+# **PDF based ChatBot using OpenAI,LangChain (Streamlit)**
 ![Screenshot from 2023-06-04 18-26-26](https://github.com/VK-Ant/BookBasedChatBot_Streamlit/assets/75832198/a2b2303b-a0e0-4bbb-b167-86cc6e29a548)
 
 
