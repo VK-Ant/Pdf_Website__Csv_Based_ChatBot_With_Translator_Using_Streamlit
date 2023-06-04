@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: streamlit-vertical-slider
+Version: 1.0.2
+Summary: Creates a customizable vertical slider
+Home-page: https://github.com/sqlinsights/streamlit-vertical-slider
+Author: Carlos D. Serrano
+Author-email: sqlinsights@gmail.com
+Requires-Python: >=3.6
+Description-Content-Type: text/plain
+License-File: LICENSE
+Requires-Dist: streamlit (>=0.63)
+
