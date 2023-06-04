@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import mimetypes
 import os
 from pathlib import Path
 from typing import Optional
@@ -19,7 +20,6 @@ from typing import Optional
 import tornado.web
 
 from streamlit.logger import get_logger
-from streamlit.web.server.routes import AssetsFileHandler
 
 _LOGGER = get_logger(__name__)
 
@@ -30,10 +30,14 @@ _LOGGER = get_logger(__name__)
 MAX_APP_STATIC_FILE_SIZE = 200 * 1024 * 1024  # 200 MB
 # The list of file extensions that we serve with the corresponding Content-Type header.
 # All files with other extensions will be served with Content-Type: text/plain
-SAFE_APP_STATIC_FILE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif")
+SAFE_APP_STATIC_FILE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".webp")
 
 
-class AppStaticFileHandler(AssetsFileHandler):
+class AppStaticFileHandler(tornado.web.StaticFileHandler):
+    def initialize(self, path: str, default_filename: Optional[str] = None) -> None:
+        super().initialize(path, default_filename)
+        mimetypes.add_type("image/webp", ".webp")
+
     def validate_absolute_path(self, root: str, absolute_path: str) -> Optional[str]:
         full_path = os.path.realpath(absolute_path)
 
@@ -60,6 +64,11 @@ class AppStaticFileHandler(AssetsFileHandler):
             )
 
         return super().validate_absolute_path(root, absolute_path)
+
+    def set_default_headers(self):
+        # CORS protection is disabled because we need access to this endpoint
+        # from the inner iframe.
+        self.set_header("Access-Control-Allow-Origin", "*")
 
     def set_extra_headers(self, path: str) -> None:
         if Path(path).suffix not in SAFE_APP_STATIC_FILE_EXTENSIONS:

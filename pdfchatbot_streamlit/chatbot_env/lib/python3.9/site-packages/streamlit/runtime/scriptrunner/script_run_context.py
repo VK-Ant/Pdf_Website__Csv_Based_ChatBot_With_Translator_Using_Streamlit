@@ -29,7 +29,6 @@ from streamlit.runtime.uploaded_file_manager import UploadedFileManager
 
 LOGGER: Final = get_logger(__name__)
 
-
 UserInfo: TypeAlias = Dict[str, Optional[str]]
 
 
@@ -89,7 +88,7 @@ class ScriptRunContext:
         """Enqueue a ForwardMsg for this context's session."""
         if msg.HasField("page_config_changed") and not self._set_page_config_allowed:
             raise StreamlitAPIException(
-                "`set_page_config()` can only be called once per app, "
+                "`set_page_config()` can only be called once per app page, "
                 + "and must be called as the first Streamlit command in your script.\n\n"
                 + "For more information refer to the [docs]"
                 + "(https://docs.streamlit.io/library/api-reference/utilities/st.set_page_config)."
@@ -141,8 +140,12 @@ def add_script_run_ctx(
     return thread
 
 
-def get_script_run_ctx() -> Optional[ScriptRunContext]:
+def get_script_run_ctx(suppress_warning: bool = False) -> Optional[ScriptRunContext]:
     """
+    Parameters
+    ----------
+    suppress_warning : bool
+        If True, don't log a warning if there's no ScriptRunContext.
     Returns
     -------
     ScriptRunContext | None
@@ -153,9 +156,9 @@ def get_script_run_ctx() -> Optional[ScriptRunContext]:
     ctx: Optional[ScriptRunContext] = getattr(
         thread, SCRIPT_RUN_CONTEXT_ATTR_NAME, None
     )
-    if ctx is None and runtime.exists():
-        # Only warn about a missing ScriptRunContext if we were started
-        # via `streamlit run`. Otherwise, the user is likely running a
+    if ctx is None and runtime.exists() and not suppress_warning:
+        # Only warn about a missing ScriptRunContext if suppress_warning is False, and
+        # we were started via `streamlit run`. Otherwise, the user is likely running a
         # script "bare", and doesn't need to be warned about streamlit
         # bits that are irrelevant when not connected to a session.
         LOGGER.warning("Thread '%s': missing ScriptRunContext", thread.name)

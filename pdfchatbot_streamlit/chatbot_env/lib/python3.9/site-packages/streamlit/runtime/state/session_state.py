@@ -14,20 +14,16 @@
 from __future__ import annotations
 
 import json
+import pickle
 from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Dict,
-    Generic,
     Iterator,
     KeysView,
     List,
     MutableMapping,
-    Tuple,
-    TypeVar,
     Union,
     cast,
 )
@@ -36,9 +32,17 @@ from pympler.asizeof import asizeof
 from typing_extensions import Final, TypeAlias
 
 import streamlit as st
-from streamlit.errors import StreamlitAPIException
+from streamlit import config, util
+from streamlit.errors import StreamlitAPIException, UnserializableSessionStateError
 from streamlit.proto.WidgetStates_pb2 import WidgetState as WidgetStateProto
 from streamlit.proto.WidgetStates_pb2 import WidgetStates as WidgetStatesProto
+from streamlit.runtime.state.common import (
+    RegisterWidgetResult,
+    T,
+    WidgetMetadata,
+    is_keyed_widget_id,
+    is_widget_id,
+)
 from streamlit.runtime.stats import CacheStat, CacheStatsProvider
 from streamlit.type_util import ValueFieldName, is_array_value_field_name
 
@@ -46,23 +50,6 @@ if TYPE_CHECKING:
     from streamlit.runtime.session_manager import SessionManager
 
 
-T = TypeVar("T")
-T_co = TypeVar("T_co", covariant=True)
-
-
-WidgetArgs: TypeAlias = Tuple[Any, ...]
-WidgetKwargs: TypeAlias = Dict[str, Any]
-WidgetCallback: TypeAlias = Callable[..., None]
-
-# A deserializer receives the value from whatever field is set on the
-# WidgetState proto, and returns a regular python value. A serializer
-# receives a regular python value, and returns something suitable for
-# a value field on WidgetState proto. They should be inverses.
-WidgetDeserializer: TypeAlias = Callable[[Any, str], T]
-WidgetSerializer: TypeAlias = Callable[[T], Any]
-
-
-GENERATED_WIDGET_KEY_PREFIX: Final = "$$GENERATED_WIDGET_KEY"
 STREAMLIT_INTERNAL_KEY_PREFIX: Final = "$$STREAMLIT_INTERNAL_KEY"
 SCRIPT_RUN_WITHOUT_ERRORS_KEY: Final = (
     f"{STREAMLIT_INTERNAL_KEY_PREFIX}_SCRIPT_RUN_WITHOUT_ERRORS"
@@ -86,23 +73,6 @@ class Value:
 WState: TypeAlias = Union[Value, Serialized]
 
 
-@dataclass(frozen=True)
-class WidgetMetadata(Generic[T]):
-    """Metadata associated with a single widget. Immutable."""
-
-    id: str
-    deserializer: WidgetDeserializer[T] = field(repr=False)
-    serializer: WidgetSerializer[T] = field(repr=False)
-    value_type: ValueFieldName
-
-    # An optional user-code callback invoked when the widget's value changes.
-    # Widget callbacks are called at the start of a script run, before the
-    # body of the script is executed.
-    callback: WidgetCallback | None = None
-    callback_args: WidgetArgs | None = None
-    callback_kwargs: WidgetKwargs | None = None
-
-
 @dataclass
 class WStates(MutableMapping[str, Any]):
     """A mapping of widget IDs to values. Widget values can be stored in
@@ -112,6 +82,9 @@ class WStates(MutableMapping[str, Any]):
 
     states: dict[str, WState] = field(default_factory=dict)
     widget_metadata: dict[str, WidgetMetadata[Any]] = field(default_factory=dict)
+
+    def __repr__(self):
+        return util.repr_(self)
 
     def __getitem__(self, k: str) -> Any:
         """Return the value of the widget with the given key.
@@ -204,11 +177,9 @@ class WStates(MutableMapping[str, Any]):
         """Set a widget's metadata, overwriting any existing metadata it has."""
         self.widget_metadata[widget_meta.id] = widget_meta
 
-    def cull_nonexistent(self, widget_ids: set[str]) -> None:
-        """Remove any widgets whose ids aren't present in a set of provided
-        widget_ids.
-        """
-        self.states = {k: v for k, v in self.states.items() if k in widget_ids}
+    def remove_stale_widgets(self, active_widget_ids: set[str]) -> None:
+        """Remove widget state for widgets whose ids aren't in `active_widget_ids`."""
+        self.states = {k: v for k, v in self.states.items() if k in active_widget_ids}
 
     def get_serialized(self, k: str) -> WidgetStateProto | None:
         """Get the serialized value of the widget with the given id.
@@ -283,40 +254,6 @@ def _missing_key_error_message(key: str) -> str:
     )
 
 
-@dataclass(frozen=True)
-class RegisterWidgetResult(Generic[T_co]):
-    """Result returned by the `register_widget` family of functions/methods.
-
-    Should be usable by widget code to determine what value to return, and
-    whether to update the UI.
-
-    Parameters
-    ----------
-    value : T_co
-        The widget's current value, or, in cases where the true widget value
-        could not be determined, an appropriate fallback value.
-
-        This value should be returned by the widget call.
-    value_changed : bool
-        True if the widget's value is different from the value most recently
-        returned from the frontend.
-
-        Implies an update to the frontend is needed.
-    """
-
-    value: T_co
-    value_changed: bool
-
-    @classmethod
-    def failure(
-        cls, deserializer: WidgetDeserializer[T_co]
-    ) -> "RegisterWidgetResult[T_co]":
-        """The canonical way to construct a RegisterWidgetResult in cases
-        where the true widget value could not be determined.
-        """
-        return cls(value=deserializer(None, ""), value_changed=False)
-
-
 @dataclass
 class SessionState:
     """SessionState allows users to store values that persist between app
@@ -347,6 +284,9 @@ class SessionState:
 
     # Keys used for widgets will be eagerly converted to the matching widget id
     _key_id_mapping: dict[str, str] = field(default_factory=dict)
+
+    def __repr__(self):
+        return util.repr_(self)
 
     # is it possible for a value to get through this without being deserialized?
     def _compact_state(self) -> None:
@@ -379,9 +319,9 @@ class SessionState:
         # happens when the streamlit server restarted or the cache was cleared),
         # then we receive a widget's state from a browser.
         for k in self._keys():
-            if not _is_widget_id(k) and not _is_internal_key(k):
+            if not is_widget_id(k) and not _is_internal_key(k):
                 state[k] = self[k]
-            elif _is_keyed_widget_id(k):
+            elif is_keyed_widget_id(k):
                 try:
                     key = wid_key_map[k]
                     state[key] = self[k]
@@ -575,35 +515,34 @@ class SessionState:
         ----------
         widget_ids_this_run: set[str]
             The IDs of the widgets that were accessed during the script
-            run. Any widget whose ID does *not* appear in this set will
-            be culled.
+            run. Any widget state whose ID does *not* appear in this set
+            is considered "stale" and will be removed.
         """
         self._reset_triggers()
-        self._cull_nonexistent(widget_ids_this_run)
+        self._remove_stale_widgets(widget_ids_this_run)
 
     def _reset_triggers(self) -> None:
         """Set all trigger values in our state dictionary to False."""
         for state_id in self._new_widget_state:
             metadata = self._new_widget_state.widget_metadata.get(state_id)
-            if metadata is not None:
-                if metadata.value_type == "trigger_value":
-                    self._new_widget_state[state_id] = Value(False)
+            if metadata is not None and metadata.value_type == "trigger_value":
+                self._new_widget_state[state_id] = Value(False)
 
         for state_id in self._old_state:
             metadata = self._new_widget_state.widget_metadata.get(state_id)
-            if metadata is not None:
-                if metadata.value_type == "trigger_value":
-                    self._old_state[state_id] = False
+            if metadata is not None and metadata.value_type == "trigger_value":
+                self._old_state[state_id] = False
 
-    def _cull_nonexistent(self, widget_ids: set[str]) -> None:
-        self._new_widget_state.cull_nonexistent(widget_ids)
+    def _remove_stale_widgets(self, active_widget_ids: set[str]) -> None:
+        """Remove widget state for widgets whose ids aren't in `active_widget_ids`."""
+        self._new_widget_state.remove_stale_widgets(active_widget_ids)
 
         # Remove entries from _old_state corresponding to
         # widgets not in widget_ids.
         self._old_state = {
             k: v
             for k, v in self._old_state.items()
-            if (k in widget_ids or not _is_widget_id(k))
+            if (k in active_widget_ids or not is_widget_id(k))
         }
 
     def _set_widget_metadata(self, widget_metadata: WidgetMetadata[Any]) -> None:
@@ -675,26 +614,32 @@ class SessionState:
         stat = CacheStat("st_session_state", "", asizeof(self))
         return [stat]
 
+    def _check_serializable(self) -> None:
+        """Verify that everything added to session state can be serialized.
+        We use pickleability as the metric for serializability, and test for
+        pickleability by just trying it.
+        """
+        for k in self:
+            try:
+                pickle.dumps(self[k])
+            except Exception as e:
+                err_msg = f"""Cannot serialize the value (of type `{type(self[k])}`) of '{k}' in st.session_state.
+                Streamlit has been configured to use [pickle](https://docs.python.org/3/library/pickle.html) to
+                serialize session_state values. Please convert the value to a pickle-serializable type. To learn
+                more about this behavior, see [our docs](https://docs.streamlit.io/knowledge-base/using-streamlit/serializable-session-state). """
+                raise UnserializableSessionStateError(err_msg) from e
 
-def _is_widget_id(key: str) -> bool:
-    return key.startswith(GENERATED_WIDGET_KEY_PREFIX)
+    def maybe_check_serializable(self) -> None:
+        """Verify that session state can be serialized, if the relevant config
+        option is set.
 
-
-# TODO: It would be better to make key vs not visible through more principled means
-def _is_keyed_widget_id(key: str) -> bool:
-    return _is_widget_id(key) and not key.endswith("-None")
+        See `_check_serializable` for details."""
+        if config.get_option("runner.enforceSerializableSessionState"):
+            self._check_serializable()
 
 
 def _is_internal_key(key: str) -> bool:
     return key.startswith(STREAMLIT_INTERNAL_KEY_PREFIX)
-
-
-def require_valid_user_key(key: str) -> None:
-    """Raise an Exception if the given user_key is invalid."""
-    if _is_widget_id(key):
-        raise StreamlitAPIException(
-            f"Keys beginning with {GENERATED_WIDGET_KEY_PREFIX} are reserved."
-        )
 
 
 @dataclass

@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING, Any, Dict, NamedTuple, Optional, cast
 import pyarrow as pa
 import tzlocal
 from pandas import DataFrame
-from pandas.io.formats.style import Styler
 from typing_extensions import Final
 
 from streamlit import errors, type_util
@@ -32,6 +31,8 @@ from streamlit.proto.DataFrame_pb2 import TableStyle as TableStyleProto
 from streamlit.runtime.metrics_util import gather_metrics
 
 if TYPE_CHECKING:
+    from pandas.io.formats.style import Styler
+
     from streamlit.delta_generator import DeltaGenerator
 
 LOGGER: Final = get_logger(__name__)
@@ -190,7 +191,7 @@ To be able to use pyarrow tables, please enable pyarrow by changing the config s
 
 
 def _marshall_styles(
-    proto_table_style: TableStyleProto, df: DataFrame, styler: Optional[Styler] = None
+    proto_table_style: TableStyleProto, df: DataFrame, styler: Optional["Styler"] = None
 ) -> None:
     """Adds pandas.Styler styling data to a proto.DataFrame
 
@@ -371,7 +372,7 @@ def _marshall_index(pandas_index, proto_index) -> None:
     import numpy as np
     import pandas as pd
 
-    if type(pandas_index) == pd.Index:
+    if type(pandas_index) == pd.Index and pandas_index.dtype.kind not in ["f", "i"]:
         _marshall_any_array(np.array(pandas_index), proto_index.plain_index.data)
     elif type(pandas_index) == pd.RangeIndex:
         min = pandas_index.min()
@@ -401,9 +402,13 @@ def _marshall_index(pandas_index, proto_index) -> None:
         )
     elif type(pandas_index) == pd.TimedeltaIndex:
         proto_index.timedelta_index.data.data.extend(pandas_index.astype(np.int64))
-    elif type(pandas_index) == pd.Int64Index:
+    elif type_util.is_type(pandas_index, "pandas.core.indexes.numeric.Int64Index") or (
+        type(pandas_index) == pd.Index and pandas_index.dtype.kind == "i"
+    ):
         proto_index.int_64_index.data.data.extend(pandas_index)
-    elif type(pandas_index) == pd.Float64Index:
+    elif type_util.is_type(
+        pandas_index, "pandas.core.indexes.numeric.Float64Index"
+    ) or (type(pandas_index) == pd.Index and pandas_index.dtype.kind == "f"):
         proto_index.float_64_index.data.data.extend(pandas_index)
     else:
         raise NotImplementedError("Can't handle %s yet." % type(pandas_index))
