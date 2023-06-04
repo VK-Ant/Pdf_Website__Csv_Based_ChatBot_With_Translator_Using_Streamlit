@@ -5,6 +5,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 import pickle
+import os
+#load api key lib
+from dotenv import load_dotenv
 
 #sidebar contents
 
@@ -23,6 +26,8 @@ with st.sidebar:
 
     add_vertical_space(4)
     st.write('All about pdf based chatbot, created by VK')
+
+load_dotenv()
 
 def main():
     st.header("Chat with your pdf file")
@@ -47,19 +52,36 @@ def main():
 
         chunks = text_splitter.split_text(text=text)
 
-        #embedding (Openai methods) 
-        embeddings = OpenAIEmbeddings()
-
-        #Store the chunks part in db (vector)
-        vectorstore = FAISS.from_texts(chunks,embedding=embeddings)
-
+        
         #store pdf name
         store_name = pdf.name[:-4]
-        with open(f"{store_name}.pkl","wb") as f:
-            pickle.dump(vectorstore,f)
+        
+        if os.path.exists(f"{store_name}.pkl"):
+            with open(f"{store_name}.pkl","rb") as f:
+                vectorstore = pickle.load(f)
+            #st.write("Already, Embeddings loaded from the your folder (disks)")
+        else:
+            #embedding (Openai methods) 
+            embeddings = OpenAIEmbeddings()
 
+            #Store the chunks part in db (vector)
+            vectorstore = FAISS.from_texts(chunks,embedding=embeddings)
+
+            with open(f"{store_name}.pkl","wb") as f:
+                pickle.dump(vectorstore,f)
             
+            #st.write("Embedding computation completed")
+
         #st.write(chunks)
+        
+        #Accept user questions/query
+
+        query = st.text_input("Ask questions about your pdf file")
+        st.write(query)
+
+
+
+
 
 if __name__=="__main__":
     main()
