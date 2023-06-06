@@ -56,10 +56,11 @@ $ streamlit run VK_BookBasedChatbot.py
 4. Upload your pdf and summarize the main content of pdf
 
 
-### **THANK YOU & credit**
+### **THANK YOU & CREDIT**
 
 1. https://youtu.be/RIWbalZ7sTo
 2. Streamlit, Langchain, OpenAI community
+3. venkatesan (My colleague)
 
 
 ## **🤗Happy learning🤗**
