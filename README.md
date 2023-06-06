@@ -7,6 +7,12 @@
 
 1. The project's goal is to create a chatbot that can quickly summarise your books' contents.
 
+## **Project Diagram**
+
+![Product Roadmaps - Frame 2](https://github.com/VK-Ant/PDFBasedChatBot_Streamlit/assets/75832198/3d9761a6-be6f-4dec-8511-066f3e31f807)
+
+![Product Roadmaps - Frame 3](https://github.com/VK-Ant/PDFBasedChatBot_Streamlit/assets/75832198/bea758e3-56d0-4e3e-b63f-84530c926b17)
+
 
 ## **STEPS TO FOLLOW IN THIS PROJECT:**
 
