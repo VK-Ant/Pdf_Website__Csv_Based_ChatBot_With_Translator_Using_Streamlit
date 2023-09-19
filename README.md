@@ -30,7 +30,7 @@ $ pip3 install -r requirements.txt
 ```
 Check that OpenAI,langchain,streamlit,PyPDF2, and datetime are installed on yourdevice (Packages).
 
-### **3.Add your project folder to the.env folder you created (put your openai api key) **
+### **3.Add your project folder to the.env folder you created (put your openai api key)**
 
 '''bash
 OPENAI_API_KEY = your openai api key
@@ -52,13 +52,16 @@ $ streamlit run VK_BookBasedChatbot.py
 
 ### **5. if you want pdf based chatbot with translator try this code**
 
+
 ```bash
 
 $ streamlit run translate.py
 
 ```
 
+
 ![Screenshot from 2023-09-19 14-33-37](https://github.com/VK-Ant/PDFBasedChatBot_Streamlit/assets/75832198/9d5f2dfb-8fde-47b6-964d-e89f022fd02e)
+
 
 ## **PROJECT DESCRIPTION:**
 
