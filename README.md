@@ -49,6 +49,17 @@ $ streamlit run VK_BookBasedChatbot.py
 ```
 ![Screenshot from 2023-06-04 18-26-26](https://github.com/VK-Ant/BookBasedChatBot_Streamlit/assets/75832198/a2b2303b-a0e0-4bbb-b167-86cc6e29a548)
 
+
+### **5. if you want pdf based chatbot with translator try this code**
+
+```bash
+
+$ streamlit run translate.py
+
+```
+
+![Screenshot from 2023-09-19 14-33-37](https://github.com/VK-Ant/PDFBasedChatBot_Streamlit/assets/75832198/9d5f2dfb-8fde-47b6-964d-e89f022fd02e)
+
 ## **PROJECT DESCRIPTION:**
 
 1. Install requirement file.
@@ -59,12 +70,15 @@ $ streamlit run VK_BookBasedChatbot.py
 
 4. Upload your pdf and summarize the main content of pdf
 
+5. And the translate feature in the chatbot
+
 
 ### **THANK YOU & CREDIT**
 
 1. https://youtu.be/RIWbalZ7sTo
 2. Streamlit, Langchain, OpenAI community
-3. venkatesan (My colleague)
+3. googletrans (library)
+4. venkatesan (My colleague)
 
 
 ## **🤗Happy learning🤗**
