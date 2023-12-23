@@ -1,0 +1,13 @@
+langchain==0.0.316
+openai==0.28.1
+PyPDF2==3.0.1
+python-dotenv==1.0.0
+faiss-cpu
+altair<5
+python-docx
+fastapi
+uvicorn
+websockets
+tiktoken
+jinja2
+python-multipart
