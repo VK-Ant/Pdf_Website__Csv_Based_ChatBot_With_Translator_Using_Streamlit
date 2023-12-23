@@ -6,3 +6,5 @@ faiss-cpu==1.7.4
 streamlit-extras
 altair<5
 googletrans==3.1.0a0
+openai
+
