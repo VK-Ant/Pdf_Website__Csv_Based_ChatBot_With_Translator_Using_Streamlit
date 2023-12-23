@@ -25,7 +25,14 @@ Make sure the path is correct.
 
 ```bash
 
-$ pip3 install -r requirements.txt
+$ pip install -r requirements.txt
+
+or
+
+if you got openai no attribute error, install below code
+
+$ pip install -r requirements_v1.txt
+
 
 ```
 Check that OpenAI,langchain,streamlit,PyPDF2, and datetime are installed on yourdevice (Packages).
