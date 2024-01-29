@@ -16,7 +16,7 @@
 ### **1. Git clone and change directory**
 
 ```bash
-$ git clone https://github.com/VK-Ant/AttendanceSystem-JetsonAGX.git](https://github.com/VK-Ant/BookBasedChatBot_Streamlit
+$ git clone https://github.com/VK-Ant/PDFBasedChatBot_With_Translator_Using_Streamlit.git
 $ cd pdfchatbot_streamlit
 ```
 Make sure the path is correct.
