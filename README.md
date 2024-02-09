@@ -1,4 +1,4 @@
-# **PDF based ChatBot using OpenAI,LangChain (Streamlit)**
+# **PDF & CSV based ChatBot using OpenAI,LangChain (Streamlit)**
 
 ## **OBJECTIVE:**
 
@@ -16,7 +16,7 @@
 ### **1. Git clone and change directory**
 
 ```bash
-$ git clone https://github.com/VK-Ant/PDFBasedChatBot_With_Translator_Using_Streamlit.git
+$ git clone https://github.com/VK-Ant/PDF_CSV_Based_ChatBot_With_Translator_Using_Streamlit
 $ cd pdfchatbot_streamlit
 ```
 Make sure the path is correct.
@@ -68,6 +68,15 @@ $ streamlit run translate.py
 
 
 ![Screenshot from 2023-09-19 14-33-37](https://github.com/VK-Ant/PDFBasedChatBot_Streamlit/assets/75832198/9d5f2dfb-8fde-47b6-964d-e89f022fd02e)
+
+# **CSV Based Chatbot**
+
+
+```bash
+
+$ streamlit run xl_chatbot.py
+
+```
 
 
 ## **PROJECT DESCRIPTION:**
