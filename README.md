@@ -77,6 +77,8 @@ $ streamlit run translate.py
 $ streamlit run xl_chatbot.py
 
 ```
+![Screenshot from 2024-02-09 20-25-21](https://github.com/VK-Ant/PDF_CSV_Based_ChatBot_With_Translator_Using_Streamlit/assets/75832198/0dd25f65-fd6e-430e-b415-77a5a437bf0c)
+
 
 
 ## **PROJECT DESCRIPTION:**
