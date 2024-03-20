@@ -1,4 +1,4 @@
-
+#credit: https://youtu.be/bupx08ZgSFg?si=8vqxghSl5k1TfySZ
 import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_community.document_loaders import WebBaseLoader
